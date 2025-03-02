@@ -1,15 +1,19 @@
-# Instructions to Build and Distribute
-## Install dependencies:
+# TRX VIEWER
+An Electron App to view Test Result XML(TRX or T-Rex) file.
+![image](https://github.com/user-attachments/assets/ea26e534-e888-4eb1-8f72-e00905cd3073)
+
+## Instructions to Build and Distribute
+### Install dependencies:
 ```
 npm install
 ```
 
-## Run the application:
+### Run the application:
 ```
 npm start
 ```
 
-## Build the application:
+### Build the application:
 ```
 npm run dist
 ```
