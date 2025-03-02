@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRX File Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h3>TRX File Viewer</h3>
+    <input type="file" id="fileInput" accept=".trx">
+    <div id="summaryContainer">
+        <h4>Summary</h4>
+        <div class="summary">
+            <div class="summaryText">
+                <div class="summaryRow"><span class="summaryTitle">Total:</span><span id="totalTests">0</span></div>
+                <div class="summaryRow"><span class="summaryTitle">Passed:</span><span id="passedTests">0</span></div>
+                <div class="summaryRow"><span class="summaryTitle">Failed:</span><span id="failedTests">0</span></div>
+                <div class="summaryRow"><span class="summaryTitle">Skipped:</span><span id="notExecutedTests">0</span></div>
+                <div class="summaryRow"><span class="summaryTitle">Duration:</span><span id="totalDuration"></span></div>
+            </div>
+            <div class="chartContainer pieContainer">
+                <canvas id="summaryChart"></canvas>
+            </div>
+
+            <div class="chartContainer barContainer">
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div id="results"></div>
+
+    <script>
+        function getDuration(startDate, endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const durationMilliseconds = end - start;
+
+            const durationSeconds = Math.floor((durationMilliseconds / 1000) % 60);
+            const durationMinutes = Math.floor((durationMilliseconds / (1000 * 60)) % 60);
+            const durationHours = Math.floor((durationMilliseconds / (1000 * 60 * 60)) % 24);
+
+            const formattedDuration = [
+                durationHours.toString().padStart(2, '0'),
+                durationMinutes.toString().padStart(2, '0'),
+                durationSeconds.toString().padStart(2, '0')
+            ].join(':');
+
+            return formattedDuration;
+        }
+        let summaryChart;
+        let barChart;
+        document.getElementById('fileInput').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(e.target.result, "application/xml");
+                    const unitTestResults = xmlDoc.getElementsByTagName('UnitTestResult');
+                    const resultSummary = xmlDoc.getElementsByTagName('ResultSummary')[0];
+                    const counters = resultSummary.getElementsByTagName('Counters')[0];
+                    const total = parseInt(counters.getAttribute('total'));
+                    const executed = parseInt(counters.getAttribute('executed'));
+                    const passed = parseInt(counters.getAttribute('passed'));
+                    const failed = parseInt(counters.getAttribute('failed'));
+                    const notExecuted = total - executed;
+                    const uTimes = xmlDoc.getElementsByTagName('Times')[0]
+                    const totalDuration = getDuration(uTimes.getAttribute('start'), uTimes.getAttribute('finish'));
+                    const summaryContainer = document.getElementById('summaryContainer');
+                    if (total > 0) {
+                        summaryContainer.style.display = 'block';
+                    } else {
+                        summaryContainer.style.display = 'none';
+                    }
+                    document.getElementById('totalTests').innerText = total;
+                    document.getElementById('passedTests').innerText = passed;
+                    document.getElementById('failedTests').innerText = failed;
+                    document.getElementById('notExecutedTests').innerText = notExecuted;
+                    document.getElementById('totalDuration').innerText = totalDuration;
+                    // Destroy existing charts if they exist
+                    if (summaryChart) {
+                        summaryChart.destroy();
+                    }
+                    if (barChart) {
+                        barChart.destroy();
+                    }
+                    const pieCtx = document.getElementById('summaryChart').getContext('2d');
+                    summaryChart = new Chart(pieCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: ['Passed', 'Failed', 'Not Executed'],
+                            datasets: [{
+                                data: [passed, failed, notExecuted],
+                                backgroundColor: ['#4caf50', '#f44336', '#ffeb3b'],
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+							maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function (context) {
+                                            const label = context.label || '';
+                                            const value = context.raw;
+                                            const percentage = ((value / total) * 100).toFixed(2);
+                                            return `${label}: ${value} (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    const barCtx = document.getElementById('barChart').getContext('2d');
+                    barChart = new Chart(barCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Passed', 'Failed', 'Not Executed'],
+                            datasets: [{
+                                data: [passed, failed, notExecuted],
+                                backgroundColor: ['#4caf50', '#f44336', '#ffeb3b'],
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+							maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false,
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function (context) {
+                                            const label = context.label || '';
+                                            const value = context.raw;
+                                            const percentage = ((value / total) * 100).toFixed(2);
+                                            return `${label}: ${value} (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+
+                    const resultsContainer = document.getElementById('results');
+                    resultsContainer.innerHTML = '';
+
+                    for (let i = 0; i < unitTestResults.length; i++) {
+                        const result = unitTestResults[i];
+                        const testName = result.getAttribute('testName');
+                        const outcome = result.getAttribute('outcome');
+
+                        const testResultDiv = document.createElement('div');
+                        testResultDiv.classList.add('testResult');
+                        testResultDiv.classList.add(outcome.toLowerCase());
+                        testResultDiv.innerHTML = `
+                                        <div class="testResultSummary">
+                                            <span><strong>${testName}</strong> - ${outcome}</span>
+                                            <span class="toggleDetails">Show Details</span>
+                                        </div>
+                                    `;
+
+                        const detailsDiv = document.createElement('div');
+                        detailsDiv.classList.add('details');
+                        detailsDiv.innerHTML = `
+                                        Duration: ${result.getAttribute('duration')}<br>
+                                        Start Time: ${new Date(result.getAttribute('startTime')).toLocaleString()}<br>
+                                        End Time: ${new Date(result.getAttribute('endTime')).toLocaleString()}<br>
+                                        Computer Name: ${result.getAttribute('computerName')}<br>
+                                    `;
+
+                        const output = result.getElementsByTagName('Output')[0];
+                        if (output) {
+                            const stdOut = output.getElementsByTagName('StdOut')[0];
+                            const stdErr = output.getElementsByTagName('StdErr')[0];
+                            const errorInfo = output.getElementsByTagName('ErrorInfo')[0];
+
+                            if (stdOut) {
+                                detailsDiv.innerHTML += `<strong>Standard Output:</strong><pre>${stdOut.textContent.trim()}</pre>`;
+                            }
+
+                            if (stdErr) {
+                                detailsDiv.innerHTML += `<strong>Standard Error:</strong><pre>${stdErr.textContent.trim()}</pre>`;
+                            }
+
+                            if (errorInfo) {
+                                const message = errorInfo.getElementsByTagName('Message')[0];
+                                const stackTrace = errorInfo.getElementsByTagName('StackTrace')[0];
+
+                                if (message) {
+                                    detailsDiv.innerHTML += `<strong>Error Message:</strong><pre>${message.textContent.trim()}</pre>`;
+                                }
+
+                                if (stackTrace) {
+                                    detailsDiv.innerHTML += `<strong>Stack Trace:</strong><pre>${stackTrace.textContent.trim()}</pre>`;
+                                }
+                            }
+                        }
+
+                        testResultDiv.appendChild(detailsDiv);
+
+                        testResultDiv.querySelector('.toggleDetails').addEventListener('click', function () {
+                            const details = this.closest('.testResult').querySelector('.details');
+                            if (details.style.display === 'none' || details.style.display === '') {
+                                details.style.display = 'block';
+                                this.innerText = 'Hide Details';
+                            } else {
+                                details.style.display = 'none';
+                                this.innerText = 'Show Details';
+                            }
+                        });
+
+                        resultsContainer.appendChild(testResultDiv);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+    </script>
+</body>
+</html>

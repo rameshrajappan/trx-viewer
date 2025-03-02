@@ -1,0 +1,98 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 20px;
+    margin-left: 40px;
+    margin-right: 40px;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+#fileInput {
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.summary {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 20px;
+    gap: 30px;
+}
+
+.chartContainer {
+	position: relative;
+    flex: 1;
+}
+
+.pieContainer {
+    width: 30%;
+    max-width: 200px;
+}
+
+.barContainer {
+    width: 40%;
+    max-width: 300px;
+}
+
+.summaryText {
+    width: 30%;
+    max-width: 200px;
+}
+
+.chartContainer canvas {
+    max-width: 100%;
+    height: auto;
+}
+.testResultSummary {
+    display: flex;
+    justify-content: space-between;
+}
+.testResult {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    background-color: #fff;
+    font-size: 14px;
+}
+
+    .testResult.passed {
+        background-color: #e0ffe0;
+    }
+
+    .testResult.failed {
+        background-color: #ffe0e0;
+    }
+
+.details {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    display: none;
+}
+
+    .details pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+.toggleDetails {
+    cursor: pointer;
+    color: blue;
+    text-decoration: underline;
+    margin-left: 10px;
+}
+
+.summaryRow {
+    display: flex;
+}
+
+.summaryTitle {
+    min-width: 80px;
+}
+
+#summaryContainer {
+    display: none;
+}
